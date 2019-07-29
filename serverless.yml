@@ -19,29 +19,37 @@ service: aws-node-rest-api-dynamodb
 # Check out our docs for more details
 # frameworkVersion: "=X.X.X"
 
+# plugins:
+#   - serverless-dynamodb-local
+#   - serverless-offline
+
+# custom:
+#   dynamodb:
+#     start:
+#       port: 8000
+#       inMemory: true
+#       migrate: true
+#     migration:
+#       dir: offline/migrations
+
 provider:
   name: aws
   runtime: nodejs10.x
+  region: us-east-2
+  profile: serverless-home
+  environment:
+    DYNAMODB_TABLE: ${self:service}-%{opt:stage, self:provider.stage}  
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetIten
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
 
-# you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
-
-# you can add statements to the Lambda function's IAM Role here
-#  iamRoleStatements:
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:ListBucket"
-#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:PutObject"
-#      Resource:
-#        Fn::Join:
-#          - ""
-#          - - "arn:aws:s3:::"
-#            - "Ref" : "ServerlessDeploymentBucket"
-#            - "/*"
 
 # you can define service wide environment variables here
 #  environment:
@@ -57,15 +65,48 @@ provider:
 #    - exclude-me-dir/**
 
 functions:
-  hello:
-    handler: handler.hello
-#    The following are a few example events you can configure
-#    NOTE: Please make sure to change your handler code to work with those events
-#    Check the event documentation for details
-#    events:
-#      - http:
-#          path: users/create
-#          method: get
+  create:
+    handler: users/create.create
+     events:
+      - http:
+          path: users
+          method: post
+          cors: true
+
+list:
+    handler: users/list.list
+     events:
+      - http:
+          path: users
+          method: get
+          cors: true
+get:
+    handler: users/get.get
+     events:
+      - http:
+          path: users
+          method: get
+          cors: true
+
+update:
+    handler: users/update.update
+     events:
+      - http:
+          path: users/{id}
+          method: put
+          cors: true
+
+delete:
+    handler: users/delete.delete
+     events:
+      - http:
+          path: users/{id}
+          method: delete
+          cors: true
+
+
+
+
 #      - websocket: $connect
 #      - s3: ${env:BUCKET}
 #      - schedule: rate(10 minutes)
@@ -100,12 +141,23 @@ functions:
 #      variable2: value2
 
 # you can add CloudFormation resource templates here
-#resources:
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
+resources:
+ Resources:
+   UsersDynamoDbTable:
+     Type: 'AWS::DynamoDB::Table'
+     DeletionPolicy: Retain
+     Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH  
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+
 #  Outputs:
 #     NewOutput:
 #       Description: "Description for the output"
