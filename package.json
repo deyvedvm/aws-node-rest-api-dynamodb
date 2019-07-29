@@ -1,0 +1,13 @@
+{
+    "name": "aws-node-rest-api-dynamodb",
+    "version": "1.0.0",
+    "description": "Serverless CRUD service exposing a REST API interface",
+    "author": {
+        "name": "Deyve Vieira",
+        "email": "deyvedvm@yahoo.com.br"
+    },
+    "license": "MIT",
+    "dependencies": {
+        "uuid": "^3.3.2"
+    }
+}
